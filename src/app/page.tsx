@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext'
 import LoginForm from '@/components/LoginForm'
-import KanbanBoard from '@/components/KanbanBoard'
+import PaperistBoard from '@/components/PaparistBoard'
 
 export default function Home() {
   const { user, loading } = useAuth()
@@ -18,5 +18,5 @@ export default function Home() {
     )
   }
 
-  return user ? <KanbanBoard /> : <LoginForm />
+  return user ? <PaperistBoard /> : <LoginForm />
 }
