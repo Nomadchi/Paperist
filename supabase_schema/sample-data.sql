@@ -4,7 +4,7 @@
 INSERT INTO public.collected_articles (user_id, arxiv_id, title, authors, summary, pdf_url)
 VALUES
   (
-    'your-user-id-1', -- 替换为实际的用户ID
+    'a6cc9683-3311-43be-9260-3c5cdbb91b4e', -- 替换为实际的用户ID
     '2301.00001',
     'Sample Article 1: A Deep Dive into AI',
     '[{"name": "John Doe"}, {"name": "Jane Smith"}]',
@@ -12,7 +12,7 @@ VALUES
     'https://arxiv.org/pdf/2301.00001.pdf'
   ),
   (
-    'your-user-id-1', -- 替换为实际的用户ID
+    'a6cc9683-3311-43be-9260-3c5cdbb91b4e', -- 替换为实际的用户ID
     '2301.00002',
     'Sample Article 2: Quantum Computing Basics',
     '[{"name": "Alice Wonderland"}]',
@@ -20,7 +20,7 @@ VALUES
     'https://arxiv.org/pdf/2301.00002.pdf'
   ),
   (
-    'your-user-id-2', -- 替换为实际的用户ID
+    'a6cc9683-3311-43be-9260-3c5cdbb91b4e', -- 替换为实际的用户ID
     '2301.00003',
     'Sample Article 3: Blockchain Technology Explained',
     '[{"name": "Bob The Builder"}, {"name": "Charlie Chaplin"}]',
