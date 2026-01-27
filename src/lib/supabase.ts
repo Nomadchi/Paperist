@@ -42,6 +42,40 @@ export type Database = {
           pdf_url?: string | null
           created_at?: string
         }
+      },
+      tags: { // 添加 tags 表的类型定义
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          created_at: string
+        },
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          created_at?: string
+        },
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          created_at?: string
+        }
+      },
+      article_tags: { // 添加 article_tags 表的类型定义
+        Row: {
+          article_id: string
+          tag_id: string
+        },
+        Insert: {
+          article_id: string
+          tag_id: string
+        },
+        Update: {
+          article_id?: string
+          tag_id?: string
+        }
       }
     }
     Views: {

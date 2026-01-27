@@ -1,17 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // 导入 useRouter
-import { supabase } from '@/lib/supabase'; // 导入 Supabase 客户端
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
-import { PaperCard, ArxivArticle } from '@/components/PaperCard'; // 从新文件导入 PaperCard 和 ArxivArticle
+import { PaperCard, ArxivArticle } from '@/components/PaperCard';
 
-// PaperistBoard 主组件
 const PaperistBoard: React.FC = () => {
   const [articles, setArticles] = useState<ArxivArticle[]>([]);
   const [currentArticleIndex, setCurrentArticleIndex] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter(); // 初始化 useRouter
+  const router = useRouter();
 
   const fetchArxivArticles = useCallback(async () => {
     setLoading(true);
@@ -58,7 +57,7 @@ const PaperistBoard: React.FC = () => {
     fetchArxivArticles();
   }, [fetchArxivArticles]);
 
-  const handleCollectArticle = async (article: ArxivArticle) => {
+  const handleCollectArticle = async (article: ArxivArticle, tags: string[]) => {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -67,7 +66,8 @@ const PaperistBoard: React.FC = () => {
     }
 
     try {
-      const { error } = await supabase
+      // 1. 插入文章到 collected_articles 表
+      const { data: articleData, error: articleError } = await supabase
         .from('collected_articles')
         .insert([
           {
@@ -78,17 +78,82 @@ const PaperistBoard: React.FC = () => {
             summary: article.summary,
             pdf_url: article.pdf_url,
           },
-        ]);
+        ])
+        .select(); // 确保返回插入的文章数据，以便获取其 id
 
-      if (error) {
-        if (error.code === '23505') {
+      if (articleError) {
+        if (articleError.code === '23505') {
             alert('您已收藏过这篇文章。');
         } else {
-            throw error;
+            throw articleError;
         }
-      } else {
-        alert('文章收藏成功！');
+        return; // 如果文章插入失败，则停止后续操作
       }
+
+
+      console.log("insert collected_articles success.");
+
+      const collectedArticleId = articleData[0].id;
+
+      
+
+      // 2. 处理标签：查找或创建，并收集 tag_id
+      const tagIds: string[] = [];
+      for (const tagName of tags) {
+        // 尝试查找现有标签
+        console.log(tagName);
+        const { data: existingTag, error: fetchTagError } = await supabase
+          .from('tags')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('name', tagName)
+          .single();
+
+        if (fetchTagError && fetchTagError.code !== 'PGRST116') { // PGRST116 表示没有找到行
+          console.error('Error fetching tag:', fetchTagError);
+          throw fetchTagError;
+        }
+
+        let tagId: string;
+        if (existingTag) {
+          tagId = existingTag.id;
+        } else {
+          // 如果标签不存在，则创建新标签
+          const { data: newTagData, error: newTagError } = await supabase
+            .from('tags')
+            .insert([{ user_id: user.id, name: tagName }])
+            .select('id')
+            .single();
+
+          if (newTagError) {
+            console.error('Error creating new tag:', newTagError);
+            throw newTagError;
+          }
+          tagId = newTagData.id;
+        }
+        tagIds.push(tagId);
+      }
+
+      // 3. 在 article_tags 表中创建文章与标签的关联
+      if (tagIds.length > 0) {
+        const articleTagsToInsert = tagIds.map(tagId => ({
+          article_id: collectedArticleId,
+          tag_id: tagId,
+        }));
+        
+        const { error: articleTagError } = await supabase
+          .from('article_tags')
+          .insert(articleTagsToInsert);
+
+        if (articleTagError) {
+          console.error('Error inserting article tags:', articleTagError);
+          // 这里可以考虑回滚 collected_articles 的插入，以确保事务原子性
+          // 但 Supabase 客户端本身不直接支持事务，需要依赖后端函数
+          throw articleTagError;
+        }
+      }
+
+      alert('文章收藏成功！');
     } catch (e: any) {
       alert(`收藏文章失败: ${e.message}`);
     }
@@ -102,11 +167,10 @@ const PaperistBoard: React.FC = () => {
     }
   };
 
-  // 处理登出逻辑
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (!error) {
-      router.push('/'); // 登出后重定向到登录页
+      router.push('/');
     } else {
       alert('登出失败: ' + error.message);
     }
@@ -115,13 +179,11 @@ const PaperistBoard: React.FC = () => {
   const currentArticle = articles[currentArticleIndex];
 
   return (
-    // 布局结构：全屏，无页面级滚动
     <div className="flex flex-col h-screen bg-white dark:bg-gray-950 overflow-hidden">
       
-      {/* 导航栏 */}
       <nav className="flex-none bg-gray-100 dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between z-10 shadow-sm relative h-16">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Paperist</h1>
-        <div className="flex items-center space-x-4"> {/* 使用 flex 和 space-x-4 布局按钮和链接 */}
+        <div className="flex items-center space-x-4">
           <button
             onClick={handleLogout}
             className="text-gray-800 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 text-lg font-medium"
@@ -134,19 +196,13 @@ const PaperistBoard: React.FC = () => {
         </div>
       </nav>
 
-      {/* 主内容区域 */}
       <div className="flex flex-1 overflow-hidden"> 
-        
-        {/* 左半部分：文章卡片容器 */}
-        {/* h-full 确保左侧面板占据父容器的全部高度，p-6 内部填充 */}
         <div className="w-1/2 h-full p-6 flex flex-col items-center">
             {loading && <p className="text-gray-600 dark:text-gray-400 m-auto">加载中...</p>}
             {error && <p className="text-red-500 m-auto">错误: {error}</p>}
             {!loading && !currentArticle && articles.length === 0 && <p className="text-gray-600 dark:text-gray-400 m-auto">没有找到文章。</p>}
             
             {!loading && currentArticle && (
-               // 修改 4: 移除了 justify-center，直接让 Card 填满高度
-               // 这样卡片会从顶部开始（距离导航栏近），并一直延伸到底部
                <PaperCard
                  article={currentArticle}
                  onCollect={handleCollectArticle}
@@ -155,9 +211,7 @@ const PaperistBoard: React.FC = () => {
             )}
         </div>
 
-        {/* 右半部分：空 */}
         <div className="w-1/2 h-full bg-gray-50 dark:bg-gray-950 border-l border-gray-200 dark:border-gray-700 hidden md:block">
-          {/* 这里以后可以放 Chat 窗口或 PDF 预览 */}
         </div>
       </div>
     </div>
