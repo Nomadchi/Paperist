@@ -3,43 +3,42 @@ import { Star, ArrowRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { supabase } from '@/lib/supabase'; // 导入 supabase 客户端
+import { supabase } from '@/lib/supabase'; 
 
-// 定义 ArXiv 文章的类型
+
 export interface ArxivArticle {
-  id: string; // ArXiv 文章的唯一标识符
+  id: string;
   title: string;
   authors: string[];
   pdf_url: string;
-  summary: string; // 添加 summary 字段
+  summary: string;
 }
 
-// 预处理 LaTeX 文本格式命令的函数
+// Function for preprocessing LaTeX text formatting commands
 export const preprocessLatexText = (text: string): string => {
-  // 替换 \textbf{...} 为 **...** (Markdown bold)
+  // replace \textbf{...} for **...**
   let processedText = text.replace(/\\textbf\{(.*?)\}/g, '**$1**');
-  // 替换 \emph{...} 为 *...* (Markdown italic)
+  // replace \emph{...} for *...*
   processedText = processedText.replace(/\\emph\{(.*?)\}/g, '*$1*');
-  // 替换 \texttt{...} 为 `...` (Markdown inline code)
+  // replace \texttt{...} for `...`
   processedText = processedText.replace(/\\texttt\{(.*?)\}/g, '`$1`');
   return processedText;
 };
 
-// PaperCard 组件
 interface PaperCardProps {
-  article: ArxivArticle; // 接收整个文章对象
-  onCollect: (article: ArxivArticle, tags: string[]) => void; // 更新 onCollect 接收 tags
+  article: ArxivArticle; 
+  onCollect: (article: ArxivArticle, tags: string[]) => void; // receive tags
   onNext: () => void;
 }
 
 export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext }) => {
-  const processedSummary = preprocessLatexText(article.summary); // 预处理摘要
+  const processedSummary = preprocessLatexText(article.summary);
   const [tagInput, setTagInput] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [showTagSuggestions, setShowTagSuggestions] = useState<boolean>(false);
 
-  // 获取用户已创建的历史标签
+  // Retrieve the user's previously created tags for the tag recommendation list.
   useEffect(() => {
     const fetchUserTags = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -91,7 +90,10 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
   );
 
   return (
+    
     <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 w-full max-w-2xl overflow-hidden">
+      
+      {/* article part */}
       <div className="p-6 pb-2 flex-none">
         <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2 text-left leading-tight">
           {article.title}
@@ -112,7 +114,7 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
        </div>
       </div>
 
-      {/* 标签输入和显示区域 */}
+      {/* tag input part */}
       <div className="p-6 pt-4 flex-none bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <div className="flex flex-wrap gap-2 mb-2">
           {selectedTags.map((tag) => (
@@ -130,7 +132,7 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
             value={tagInput}
             onChange={handleTagInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="添加标签：逗号分隔，回车添加"
+            placeholder="添加标签：回车添加"
             className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             onFocus={() => setShowTagSuggestions(true)}
             onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)} // 延迟隐藏，以便点击建议
@@ -151,6 +153,7 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
         </div>
       </div>
 
+      {/* three buttons part */}
       <div className="p-6 pt-4 flex-none bg-white dark:bg-gray-800 z-10">
         <div className="flex space-x-4 justify-start">
           <a
@@ -158,7 +161,7 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-full w-12 h-12 flex items-center justify-center shadow-sm hover:shadow-md transition-all bg-blue-500 hover:bg-blue-600 text-white font-bold text-lg"
-            title="查看 PDF"
+            title="PDF"
           >
             P
           </a>
@@ -179,14 +182,14 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
               
             }}
             className="rounded-full w-12 h-12 flex items-center justify-center shadow-sm hover:shadow-md transition-all bg-yellow-400 hover:bg-yellow-500"
-            title="收藏文章"
+            title="Collect"
           >
             <Star className="text-white w-6 h-6" />
           </button>
           <button
             onClick={onNext}
             className="rounded-full w-12 h-12 flex items-center justify-center shadow-sm hover:shadow-md transition-all bg-green-500 hover:bg-green-600"
-            title="下一篇推荐"
+            title="Next"
           >
             <ArrowRight className="text-white w-6 h-6" />
           </button>
