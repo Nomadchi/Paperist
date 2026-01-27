@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { PlasmicRootProvider } from "@plasmicapp/loader-nextjs";
-import { PLASMIC } from "@/lib/plasmic";
 import 'katex/dist/katex.min.css';
+import Navbar from '@/components/Navbar';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,9 +21,8 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          <PlasmicRootProvider loader={PLASMIC}>
-            {children}
-          </PlasmicRootProvider>
+          <Navbar />
+          {children}
         </AuthProvider>
       </body>
     </html>

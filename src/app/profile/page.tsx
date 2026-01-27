@@ -2,7 +2,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { supabase, Database } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+
 
 type CollectedArticle = Database['public']['Tables']['collected_articles']['Row'];
 type Tag = Database['public']['Tables']['tags']['Row'];
@@ -51,6 +54,7 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const { signOut } = useAuth();
 
   const fetchUserArticlesAndTags = async (filterTagId: string | null = null) => {
     setLoading(true);
@@ -130,6 +134,39 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleDeleteTag = async (e: React.MouseEvent, tagId: string) => {
+    
+    e.stopPropagation();
+  
+    if (!window.confirm('Remove the tag ?')) return;
+  
+    try {
+      const { error } = await supabase
+        .from('tags')
+        .delete()
+        .eq('id', tagId);
+  
+      if (error) throw error;
+  
+      
+      setAllTags(prev => prev.filter(t => t.id !== tagId));
+  
+      setCollectedArticles(prevArticles => 
+        prevArticles.map(article => ({
+          ...article,
+          tags: article.tags.filter(t => t.id !== tagId)
+        }))
+      );
+  
+      if (selectedFilterTag === tagId) {
+        setSelectedFilterTag(null);
+      }
+  
+    } catch (err: any) {
+      alert(`Removal Error: ${err.message}`);
+    }
+  };
+
   const handleTagFilterClick = (tagId: string | null) => {
     setSelectedFilterTag(tagId);
   };
@@ -148,23 +185,47 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="p-5">
+
       <h2 className="text-2xl font-bold mb-5 text-gray-800 dark:text-gray-200">Collected Articles</h2>
       
       <div className="flex flex-wrap gap-2 mb-4">
         <button
           onClick={() => handleTagFilterClick(null)}
-          className={`px-3 py-1 rounded-full text-sm ${!selectedFilterTag ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+          className={`px-3 py-1 rounded-full text-sm transition-colors ${
+            !selectedFilterTag ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+          }`}
         >
           All Articles
         </button>
         {allTags.map(tag => (
-          <button
+          <div
             key={tag.id}
-            onClick={() => handleTagFilterClick(tag.id)}
-            className={`px-3 py-1 rounded-full text-sm ${selectedFilterTag === tag.id ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+            className={`flex items-center group rounded-full px-3 py-1 text-sm transition-all ${
+              selectedFilterTag === tag.id 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
           >
-            {tag.name}
-          </button>
+           
+            <button
+              onClick={() => handleTagFilterClick(tag.id)}
+              className="mr-1 focus:outline-none"
+            >
+              {tag.name}
+            </button>
+            
+            <button
+              onClick={(e) => handleDeleteTag(e, tag.id)}
+              className={`ml-1 flex items-center justify-center w-4 h-4 rounded-full transition-colors ${
+                selectedFilterTag === tag.id 
+                  ? 'hover:bg-blue-400 text-blue-100' 
+                  : 'hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-400'
+              }`}
+              title="Delete tag"
+            >
+              <span className="leading-none text-xs">×</span>
+            </button>
+          </div>
         ))}
       </div>
 

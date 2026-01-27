@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { PaperCard, ArxivArticle } from '@/components/PaperCard';
 import { usePaperStack } from '@/hooks/usePaperStack';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PaperistBoard: React.FC = () => {
   const router = useRouter();
   const { currentArticle, loading, error, nextArticle } = usePaperStack();
+  const { signOut } = useAuth();
 
   const handleCollectArticle = async (article: ArxivArticle, tags: string[]) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -103,32 +105,8 @@ const PaperistBoard: React.FC = () => {
     }
   };
 
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
-      router.push('/');
-    } else {
-      alert('Logout Error: ' + error.message);
-    }
-  };
-
   return (
     <div className="flex flex-col h-screen bg-white dark:bg-gray-950 overflow-hidden">
-      
-      <nav className="flex-none bg-gray-100 dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between z-10 shadow-sm relative h-16">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Paperist</h1>
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={handleLogout}
-            className="text-gray-800 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 text-lg font-medium"
-          >
-            Logout
-          </button>
-          <Link href="/profile" className="text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 text-lg font-medium">
-            Profile
-          </Link>
-        </div>
-      </nav>
 
       <div className="flex flex-1 overflow-hidden"> 
         <div className="w-1/2 h-full p-6 flex flex-col items-center">

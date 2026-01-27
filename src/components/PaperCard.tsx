@@ -130,7 +130,7 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
             value={tagInput}
             onChange={handleTagInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="添加标签 (逗号分隔或回车)"
+            placeholder="添加标签：逗号分隔，回车添加"
             className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             onFocus={() => setShowTagSuggestions(true)}
             onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)} // 延迟隐藏，以便点击建议
