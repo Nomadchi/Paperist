@@ -164,23 +164,19 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
           </a>
           <button
             onClick={() => {
-              // 建立一个临时的标签数组，包含已选中的和当前正在输入的
+              
               let finalTags = [...selectedTags];
               const trimmedInput = tagInput.trim();
               
-              // 如果输入框里有内容且不在已选列表中，加进去
+              
               if (trimmedInput && !finalTags.includes(trimmedInput)) {
                 finalTags.push(trimmedInput);
-                // 可选：同步更新 UI 状态
+               
                 setSelectedTags(finalTags);
                 setTagInput('');
               }
-              
-              // 发送完整的标签列表
               onCollect(article, finalTags);
               
-              // 收藏成功后清空当前卡片的标签（防止带到下一张卡片）
-              setSelectedTags([]);
             }}
             className="rounded-full w-12 h-12 flex items-center justify-center shadow-sm hover:shadow-md transition-all bg-yellow-400 hover:bg-yellow-500"
             title="收藏文章"

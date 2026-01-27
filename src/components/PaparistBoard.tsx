@@ -204,6 +204,7 @@ const PaperistBoard: React.FC = () => {
             
             {!loading && currentArticle && (
                <PaperCard
+                 key={currentArticle.id}
                  article={currentArticle}
                  onCollect={handleCollectArticle}
                  onNext={handleNextArticle}
