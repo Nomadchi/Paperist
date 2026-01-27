@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // 导入 useRouter
 import { supabase } from '@/lib/supabase'; // 导入 Supabase 客户端
 
 import { PaperCard, ArxivArticle } from '@/components/PaperCard'; // 从新文件导入 PaperCard 和 ArxivArticle
@@ -10,6 +11,7 @@ const PaperistBoard: React.FC = () => {
   const [currentArticleIndex, setCurrentArticleIndex] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter(); // 初始化 useRouter
 
   const fetchArxivArticles = useCallback(async () => {
     setLoading(true);
@@ -100,6 +102,16 @@ const PaperistBoard: React.FC = () => {
     }
   };
 
+  // 处理登出逻辑
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      router.push('/'); // 登出后重定向到登录页
+    } else {
+      alert('登出失败: ' + error.message);
+    }
+  };
+
   const currentArticle = articles[currentArticleIndex];
 
   return (
@@ -109,7 +121,13 @@ const PaperistBoard: React.FC = () => {
       {/* 导航栏 */}
       <nav className="flex-none bg-gray-100 dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between z-10 shadow-sm relative h-16">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Paperist</h1>
-        <div>
+        <div className="flex items-center space-x-4"> {/* 使用 flex 和 space-x-4 布局按钮和链接 */}
+          <button
+            onClick={handleLogout}
+            className="text-gray-800 dark:text-gray-200 hover:text-red-600 dark:hover:text-red-400 text-lg font-medium"
+          >
+            Logout
+          </button>
           <Link href="/profile" className="text-gray-800 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 text-lg font-medium">
             Profile
           </Link>

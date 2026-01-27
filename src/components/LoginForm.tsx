@@ -41,10 +41,10 @@ export default function LoginForm() {
               </div>
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2">
-              Kanban Pro
+              Paperist
             </h1>
             <p className="text-slate-600 font-medium">
-              Beautiful project management made simple
+              Help knowledge reach
             </p>
           </div>
 
