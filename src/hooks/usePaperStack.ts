@@ -17,7 +17,8 @@ export const usePaperStack = () => {
       const randomStart = Math.floor(Math.random() * 100);
       
       const newArticles = await fetchArxivArticles({
-        category: randomCategory,
+        query: randomCategory,
+        searchField: "cat",
         start: randomStart,
         maxResults: 10
       });
@@ -29,6 +30,11 @@ export const usePaperStack = () => {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const injectArticle = useCallback((article: ArxivArticle) => {
+    setArticles([article]);
+    setCurrentIndex(0);
   }, []);
 
   const nextArticle = useCallback(() => {
@@ -48,6 +54,7 @@ export const usePaperStack = () => {
     loading,
     error,
     nextArticle,
-    refresh: getRecommendation
+    refresh: getRecommendation,
+    injectArticle
   };
 };

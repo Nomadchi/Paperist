@@ -1,16 +1,28 @@
 // PaperistBoard.tsx
-import React from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import React, {useEffect} from 'react';
 import { supabase } from '@/lib/supabase';
 import { PaperCard, ArxivArticle } from '@/components/PaperCard';
 import { usePaperStack } from '@/hooks/usePaperStack';
 import { useAuth } from '@/contexts/AuthContext';
+import { SEARCH_PAPER_EVENT } from '@/lib/events';
 
 const PaperistBoard: React.FC = () => {
-  const router = useRouter();
-  const { currentArticle, loading, error, nextArticle } = usePaperStack();
-  const { signOut } = useAuth();
+  
+  const { currentArticle, loading, error, nextArticle, injectArticle } = usePaperStack();
+
+  useEffect(() => {
+    // 定义事件处理函数
+    const handleSearchSelection = (e: any) => {
+      const paper = e.detail as ArxivArticle;
+      if (paper) {
+        injectArticle(paper);
+      }
+    };
+
+    // 监听导航栏发出的自定义事件
+    window.addEventListener(SEARCH_PAPER_EVENT, handleSearchSelection);
+    return () => window.removeEventListener(SEARCH_PAPER_EVENT, handleSearchSelection);
+  }, [injectArticle]);
 
   const handleCollectArticle = async (article: ArxivArticle, tags: string[]) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -48,55 +60,29 @@ const PaperistBoard: React.FC = () => {
       
 
       // 2. Handle tags: find or create tags and collect tag_id
-      const tagIds: string[] = [];
-      for (const tagName of tags) {
-        console.log(tagName);
-        const { data: existingTag, error: fetchTagError } = await supabase
+      if (tags.length > 0) {
+      
+        const { data: tagsData, error: tagsError } = await supabase
           .from('tags')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('name', tagName)
-          .single();
-
-        if (fetchTagError && fetchTagError.code !== 'PGRST116') {
-          console.error('Error fetching tag:', fetchTagError);
-          throw fetchTagError;
-        }
-
-        let tagId: string;
-        if (existingTag) {
-          tagId = existingTag.id;
-        } else {
-          const { data: newTagData, error: newTagError } = await supabase
-            .from('tags')
-            .insert([{ user_id: user.id, name: tagName }])
-            .select('id')
-            .single();
-
-          if (newTagError) {
-            console.error('Error creating new tag:', newTagError);
-            throw newTagError;
-          }
-          tagId = newTagData.id;
-        }
-        tagIds.push(tagId);
-      }
-
-      // 3. Handle association: create an association of articles with tags in a article_tags table
-      if (tagIds.length > 0) {
-        const articleTagsToInsert = tagIds.map(tagId => ({
+          .upsert(
+            tags.map(name => ({ user_id: user.id, name })),
+            { onConflict: 'user_id, name' } 
+          )
+          .select('id');
+      
+        if (tagsError) throw tagsError;
+      
+        // 3. handle associations
+        const articleTagsToInsert = tagsData.map(t => ({
           article_id: collectedArticleId,
-          tag_id: tagId,
+          tag_id: t.id,
         }));
-        
-        const { error: articleTagError } = await supabase
+      
+        const { error: relError } = await supabase
           .from('article_tags')
           .insert(articleTagsToInsert);
-
-        if (articleTagError) {
-          console.error('Error inserting article tags:', articleTagError);
-          throw articleTagError;
-        }
+      
+        if (relError) throw relError;
       }
 
       alert('Collected Successfully');
@@ -105,6 +91,7 @@ const PaperistBoard: React.FC = () => {
     }
   };
 
+  
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-white dark:bg-gray-950 overflow-hidden">
 
