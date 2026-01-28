@@ -54,7 +54,6 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-  const { signOut } = useAuth();
 
   const fetchUserArticlesAndTags = async (filterTagId: string | null = null) => {
     setLoading(true);
