@@ -1,7 +1,7 @@
--- 1. 启用必要扩展
+-- 1. Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. 创建表结构
+-- 2. Create Table Structure
 CREATE TABLE IF NOT EXISTS public.collected_articles (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id uuid REFERENCES auth.users(id),
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.tags (
   id uuid NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id uuid REFERENCES auth.users(id) NOT NULL,
   name TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(), -- 已修复这里的逗号
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   UNIQUE (user_id, name)
 );
 
@@ -27,21 +27,21 @@ CREATE TABLE IF NOT EXISTS public.article_tags (
   PRIMARY KEY (article_id, tag_id)
 );
 
--- 3. 启用 RLS
+-- 3. Enable RLS
 ALTER TABLE public.collected_articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.article_tags ENABLE ROW LEVEL SECURITY;
 
----
--- 4. 配置 Tags Policy (采用先删后建模式)
----
+-- 4. Unique arxiv for each user
+ALTER TABLE public.collected_articles 
+ADD CONSTRAINT unique_user_arxiv_article UNIQUE (user_id, arxiv_id);
+
+-- 5. Tags Policy
 DROP POLICY IF EXISTS "Users can manage their own tags" ON public.tags;
 CREATE POLICY "Users can manage their own tags" ON public.tags 
 FOR ALL USING (auth.uid() = user_id);
 
----
--- 5. 配置 Article Tags Policy
----
+-- 6. Article Tags Policy
 DROP POLICY IF EXISTS "Users can manage their own article tags" ON public.article_tags;
 CREATE POLICY "Users can manage their own article tags" ON public.article_tags 
 FOR ALL USING (
@@ -52,9 +52,7 @@ FOR ALL USING (
   )
 );
 
----
--- 6. 配置 Collected Articles Policy
----
+-- 7. Collected Articles Policy
 DROP POLICY IF EXISTS "Users can view their own collected articles." ON public.collected_articles;
 CREATE POLICY "Users can view their own collected articles." ON public.collected_articles
   FOR SELECT USING (auth.uid() = user_id);
@@ -70,3 +68,4 @@ CREATE POLICY "Users can update their own collected articles." ON public.collect
 DROP POLICY IF EXISTS "Users can delete their own collected articles." ON public.collected_articles;
 CREATE POLICY "Users can delete their own collected articles." ON public.collected_articles
   FOR DELETE USING (auth.uid() = user_id);
+

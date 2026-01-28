@@ -14,9 +14,10 @@ type Tag = Database['public']['Tables']['tags']['Row'];
 interface CollectedArticleCardProps {
   article: CollectedArticle & { tags: Tag[] };
   onRemove: (id: string) => void;
+  onRemoveTag: (articleId: string, tagId: string) => void;
 }
 
-const CollectedArticleCard: React.FC<CollectedArticleCardProps> = ({ article, onRemove }) => {
+const CollectedArticleCard: React.FC<CollectedArticleCardProps> = ({ article, onRemove, onRemoveTag }) => {
   return (
     <div className="border border-gray-300 p-4 m-2 rounded-md shadow-sm bg-white dark:bg-gray-800 flex flex-col justify-between">
       <div>
@@ -31,9 +32,16 @@ const CollectedArticleCard: React.FC<CollectedArticleCardProps> = ({ article, on
         </a>
         <div className="flex flex-wrap gap-1 mt-2">
           {article.tags && article.tags.map(tag => (
-            <span key={tag.id} className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs">
-              {tag.name}
-            </span>
+            <div key={tag.id} className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded-full text-xs flex items-center">
+              <span>{tag.name}</span>
+              <button
+                onClick={() => onRemoveTag(article.id, tag.id)}
+                className="ml-1 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 focus:outline-none"
+                title="Remove tag"
+              >
+                ×
+              </button>
+            </div>
           ))}
         </div>
       </div>
@@ -166,6 +174,33 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleRemoveTag = async (articleId: string, tagId: string) => {
+    try {
+      const { error } = await supabase
+        .from('article_tags')
+        .delete()
+        .eq('article_id', articleId)
+        .eq('tag_id', tagId);
+
+      if (error) throw error;
+
+      setCollectedArticles(prevArticles => 
+        prevArticles.map(article => {
+          if (article.id === articleId) {
+            return {
+              ...article,
+              tags: article.tags.filter(t => t.id !== tagId)
+            };
+          }
+          return article;
+        })
+      );
+
+    } catch (err: any) {
+      alert(`Removal Error: ${err.message}`);
+    }
+  };
+
   const handleTagFilterClick = (tagId: string | null) => {
     setSelectedFilterTag(tagId);
   };
@@ -233,7 +268,7 @@ const ProfilePage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {collectedArticles.map((article) => (
-            <CollectedArticleCard key={article.id} article={article} onRemove={handleRemoveArticle} />
+            <CollectedArticleCard key={article.id} article={article} onRemove={handleRemoveArticle} onRemoveTag={handleRemoveTag} />
           ))}
         </div>
       )}
