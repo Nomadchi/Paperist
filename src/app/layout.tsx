@@ -21,8 +21,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
+          <div className="h-screen">
           <Navbar />
           {children}
+          </div>
         </AuthProvider>
       </body>
     </html>

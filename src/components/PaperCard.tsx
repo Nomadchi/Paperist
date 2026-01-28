@@ -103,7 +103,7 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto min-h-0 px-6 py-2 custom-scrollbar">
         <div key={article.id} className="text-sm text-gray-600 dark:text-gray-400 text-left leading-relaxed text-justify prose prose-sm max-w-none dark:prose-invert">
           <ReactMarkdown 
             remarkPlugins={[remarkMath]} 
@@ -155,7 +155,7 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
 
       {/* three buttons part */}
       <div className="p-6 pt-4 flex-none bg-white dark:bg-gray-800 z-10">
-        <div className="flex space-x-4 justify-start">
+        <div className="flex space-x-4 justify-center">
           <a
             href={article.pdf_url}
             target="_blank"

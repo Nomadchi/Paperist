@@ -106,10 +106,10 @@ const PaperistBoard: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-950 overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-white dark:bg-gray-950 overflow-hidden">
 
       <div className="flex flex-1 overflow-hidden"> 
-        <div className="w-1/2 h-full p-6 flex flex-col items-center">
+        <div className="w-1/2 h-full p-6 flex flex-col items-center overflow-hidden">
             {loading && <p className="text-gray-600 dark:text-gray-400 m-auto">Loading...</p>}
             {error && <p className="text-red-500 m-auto">Error: {error}</p>}
             {!loading && !currentArticle && <p className="text-gray-600 dark:text-gray-400 m-auto">No articles</p>}
