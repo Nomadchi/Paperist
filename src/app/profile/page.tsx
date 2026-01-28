@@ -55,6 +55,12 @@ const CollectedArticleCard: React.FC<CollectedArticleCardProps> = ({ article, on
   );
 };
 
+interface TagEditState {
+  id: string;
+  name: string;
+  isEditing: boolean;
+}
+
 const ProfilePage: React.FC = () => {
   const [collectedArticles, setCollectedArticles] = useState<(CollectedArticle & { tags: Tag[] })[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
@@ -62,6 +68,8 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [isModifyTagsMode, setIsModifyTagsMode] = useState<boolean>(false);
+  const [tagEditStates, setTagEditStates] = useState<TagEditState[]>([]);
 
   const fetchUserArticlesAndTags = async (filterTagId: string | null = null) => {
     setLoading(true);
@@ -80,6 +88,13 @@ const ProfilePage: React.FC = () => {
           throw tagsError;
         }
         setAllTags(tagsData as Tag[]);
+
+        // 初始化tag编辑状态
+        setTagEditStates(tagsData.map(tag => ({
+          id: tag.id,
+          name: tag.name,
+          isEditing: false
+        })));
 
         // get collected articles
 
@@ -201,6 +216,68 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleEnterEditTag = (tagId: string) => {
+    setTagEditStates(prev => prev.map(tag => 
+      tag.id === tagId ? { ...tag, isEditing: true } : tag
+    ));
+  };
+
+  const handleSaveTagEdit = async (tagId: string, newName: string) => {
+    if (!newName.trim()) {
+      alert('Tag name cannot be empty');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('tags')
+        .update({ name: newName.trim() })
+        .eq('id', tagId);
+
+      if (error) throw error;
+
+      // 更新本地状态
+      setTagEditStates(prev => prev.map(tag => 
+        tag.id === tagId ? { ...tag, name: newName.trim(), isEditing: false } : tag
+      ));
+
+      setAllTags(prev => prev.map(tag => 
+        tag.id === tagId ? { ...tag, name: newName.trim() } : tag
+      ));
+
+      // 更新文章中的标签名称
+      setCollectedArticles(prev => prev.map(article => ({
+        ...article,
+        tags: article.tags.map(tag => 
+          tag.id === tagId ? { ...tag, name: newName.trim() } : tag
+        )
+      })));
+
+    } catch (err: any) {
+      alert(`Edit Error: ${err.message}`);
+    }
+  };
+
+  const handleCancelTagEdit = (tagId: string) => {
+    const originalTag = allTags.find(t => t.id === tagId);
+    if (originalTag) {
+      setTagEditStates(prev => prev.map(tag => 
+        tag.id === tagId ? { ...tag, name: originalTag.name, isEditing: false } : tag
+      ));
+    }
+  };
+
+  const handleConfirmModifications = () => {
+    // 检查是否有正在编辑的标签
+    const hasEditingTags = tagEditStates.some(tag => tag.isEditing);
+    if (hasEditingTags) {
+      alert('Please save or cancel all tag edits before exiting modify mode');
+      return;
+    }
+
+    setIsModifyTagsMode(false);
+  };
+
   const handleTagFilterClick = (tagId: string | null) => {
     setSelectedFilterTag(tagId);
   };
@@ -220,7 +297,24 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="p-5">
 
-      <h2 className="text-2xl font-bold mb-5 text-gray-800 dark:text-gray-200">Collected Articles</h2>
+      <div className="flex justify-between items-center mb-5">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Collected Articles</h2>
+        {!isModifyTagsMode ? (
+          <button
+            onClick={() => setIsModifyTagsMode(true)}
+            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-sm font-medium"
+          >
+            Modify Tags
+          </button>
+        ) : (
+          <button
+            onClick={handleConfirmModifications}
+            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md text-sm font-medium"
+          >
+            Confirm Modifications
+          </button>
+        )}
+      </div>
       
       <div className="flex flex-wrap gap-2 mb-4">
         <button
@@ -228,39 +322,85 @@ const ProfilePage: React.FC = () => {
           className={`px-3 py-1 rounded-full text-sm transition-colors ${
             !selectedFilterTag ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
           }`}
+          disabled={isModifyTagsMode}
         >
           All Articles
         </button>
-        {allTags.map(tag => (
-          <div
-            key={tag.id}
-            className={`flex items-center group rounded-full px-3 py-1 text-sm transition-all ${
-              selectedFilterTag === tag.id 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-           
-            <button
-              onClick={() => handleTagFilterClick(tag.id)}
-              className="mr-1 focus:outline-none"
-            >
-              {tag.name}
-            </button>
-            
-            <button
-              onClick={(e) => handleDeleteTag(e, tag.id)}
-              className={`ml-1 flex items-center justify-center w-4 h-4 rounded-full transition-colors ${
+        {allTags.map(tag => {
+          const tagEditState = tagEditStates.find(t => t.id === tag.id);
+          return (
+            <div
+              key={tag.id}
+              className={`flex items-center rounded-full px-3 py-1 text-sm transition-all ${
                 selectedFilterTag === tag.id 
-                  ? 'hover:bg-blue-400 text-blue-100' 
-                  : 'hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-400'
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
-              title="Delete tag"
             >
-              <span className="leading-none text-xs">×</span>
-            </button>
-          </div>
-        ))}
+              {isModifyTagsMode ? (
+                tagEditState?.isEditing ? (
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      value={tagEditState.name}
+                      onChange={(e) => setTagEditStates(prev => prev.map(t => 
+                        t.id === tag.id ? { ...t, name: e.target.value } : t
+                      ))}
+                      className="bg-transparent border border-gray-300 rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1"
+                      autoFocus
+                      onBlur={() => handleSaveTagEdit(tag.id, tagEditState.name)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleSaveTagEdit(tag.id, tagEditState.name);
+                        if (e.key === 'Escape') handleCancelTagEdit(tag.id);
+                      }}
+                    />
+                    <button
+                      onClick={() => handleSaveTagEdit(tag.id, tagEditState.name)}
+                      className="ml-1 text-green-500 hover:text-green-700 focus:outline-none"
+                      title="Save"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={() => handleCancelTagEdit(tag.id)}
+                      className="ml-1 text-red-500 hover:text-red-700 focus:outline-none"
+                      title="Cancel"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <span>{tag.name}</span>
+                    <button
+                      onClick={() => handleEnterEditTag(tag.id)}
+                      className="ml-1 text-gray-500 hover:text-blue-500 focus:outline-none"
+                      title="Edit tag"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteTag(e, tag.id)}
+                      className="ml-1 text-gray-500 hover:text-red-500 focus:outline-none"
+                      title="Delete tag"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleTagFilterClick(tag.id)}
+                    className="mr-1 focus:outline-none"
+                  >
+                    {tag.name}
+                  </button>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {collectedArticles.length === 0 ? (
