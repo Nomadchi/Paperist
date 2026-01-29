@@ -349,7 +349,7 @@ const ProfilePage: React.FC = () => {
                       className="bg-transparent border border-gray-300 rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1"
                       autoFocus
                       onBlur={() => handleSaveTagEdit(tag.id, tagEditState.name)}
-                      onKeyPress={(e) => {
+                      onKeyDown={(e) => {
                         if (e.key === 'Enter') handleSaveTagEdit(tag.id, tagEditState.name);
                         if (e.key === 'Escape') handleCancelTagEdit(tag.id);
                       }}

@@ -11,7 +11,7 @@ const PaperistBoard: React.FC = () => {
   const { currentArticle, loading, error, nextArticle, injectArticle } = usePaperStack();
 
   useEffect(() => {
-    // 定义事件处理函数
+   
     const handleSearchSelection = (e: any) => {
       const paper = e.detail as ArxivArticle;
       if (paper) {
@@ -19,7 +19,6 @@ const PaperistBoard: React.FC = () => {
       }
     };
 
-    // 监听导航栏发出的自定义事件
     window.addEventListener(SEARCH_PAPER_EVENT, handleSearchSelection);
     return () => window.removeEventListener(SEARCH_PAPER_EVENT, handleSearchSelection);
   }, [injectArticle]);

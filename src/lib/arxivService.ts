@@ -4,31 +4,39 @@ import { ArxivArticle } from '@/components/PaperCard';
 export const CATEGORIES = ['cs.AI', 'cs.CV', 'cs.LG', 'cs.CL'];
 
 export async function fetchArxivArticles(params: {
-  query?: string;      
-  searchField?: string; 
+  query: string;       
+  searchField?: 'all' | 'ti' | 'au' | 'abs' | 'cat' | 'custom'; // 新增 custom
   start?: number;
   maxResults?: number;
+  sortBy?: 'relevance' | 'lastUpdatedDate' | 'submittedDate';
 }): Promise<ArxivArticle[]> {
   
   const { 
-    query = 'cs.AI', 
-    searchField = 'cat', 
+    query, 
+    searchField = 'custom', // 默认为 custom 以支持复杂查询
     start = 0, 
-    maxResults = 10 
+    maxResults = 10,
+    sortBy = 'relevance' 
   } = params;
   
-  let processedQuery = query;
-  if (searchField === 'ti' && !query.startsWith('"')) {
-    processedQuery = `"${query}"`;
+  let finalQuery = query.trim();
+
+  if (searchField !== 'custom') {
+    if (searchField === 'ti' && !finalQuery.startsWith('"')) {
+      finalQuery = `"${finalQuery}"`;
+    }
+    finalQuery = `${searchField}:${finalQuery}`;
   }
 
-  const q = `${searchField}:${processedQuery}`;
+  const queryParams = new URLSearchParams({
+    query: finalQuery,
+    sortBy: sortBy,
+    sortOrder: 'descending',
+    max_results: maxResults.toString(),
+    start: start.toString()
+  });
 
-  const sortBy = searchField === 'cat' ? 'submittedDate' : 'relevance';
-  
-  const response = await fetch(
-    `/api/arxiv?query=${encodeURIComponent(q)}&sortBy=${sortBy}&sortOrder=descending&max_results=${maxResults}&start=${start}`
-  );
+  const response = await fetch(`/api/arxiv?${queryParams.toString()}`);
 
   if (!response.ok) {
     throw new Error(`ArXiv API error: ${response.status}`);
@@ -39,18 +47,19 @@ export async function fetchArxivArticles(params: {
   const xmlDoc = parser.parseFromString(xmlText, "text/xml");
   const entries = xmlDoc.getElementsByTagName('entry');
 
-  return Array.from(entries).map(entry => {
-    
-    const pdfLinkElement = Array.from(entry.getElementsByTagName('link')).find(
-      link => link.getAttribute('title') === 'pdf'
-    );
+  return Array.from(entries).map((entry): ArxivArticle => {
+    const links = Array.from(entry.getElementsByTagName('link'));
+    const pdfLink = links.find(l => l.getAttribute('title') === 'pdf') || 
+                    links.find(l => l.getAttribute('href')?.includes('pdf'));
 
     return {
-      id: entry.getElementsByTagName('id')[0]?.textContent?.split('/').pop() || 'N/A',
-      title: entry.getElementsByTagName('title')[0]?.textContent?.replace(/\n/g, ' ').trim() || 'N/A',
-      authors: Array.from(entry.getElementsByTagName('name')).map(n => n.textContent || 'Unknown'),
-      pdf_url: pdfLinkElement?.getAttribute('href') || 'N/A',
-      summary: entry.getElementsByTagName('summary')[0]?.textContent?.replace(/\n/g, ' ').trim() || 'N/A',
+      id: entry.getElementsByTagName('id')[0]?.textContent?.split('/').pop() || '',
+      title: entry.getElementsByTagName('title')[0]?.textContent?.replace(/\s+/g, ' ').trim() || 'Untitled',
+      authors: Array.from(entry.getElementsByTagName('name')).map(n => n.textContent?.trim() || 'Unknown'),
+      pdf_url: pdfLink?.getAttribute('href') || '',
+      summary: entry.getElementsByTagName('summary')[0]?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      category: entry.getElementsByTagName('category')[0]?.getAttribute('term') || 'N/A',
+      published: entry.getElementsByTagName('published')[0]?.textContent || '',
     };
   });
 }

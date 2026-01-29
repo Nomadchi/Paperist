@@ -3,7 +3,33 @@ import { Star, ArrowRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import { supabase } from '@/lib/supabase'; 
+import { supabase } from '@/lib/supabase';
+
+// Track user interaction with articles
+const trackUserInteraction = async (arxivId: string, interactionType: string, article: any) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // Insert interaction record
+      await supabase
+        .from('user_article_interactions')
+        .insert([{
+          user_id: user.id,
+          arxiv_id: arxivId,
+          interaction_type: interactionType,
+          article_title: article.title,
+          article_summary: article.summary
+        }]);
+      
+      // Update user interests
+      // Dynamically import to avoid circular dependencies
+      const { updateUserInterests } = await import('@/lib/keywordExtractor');
+      await updateUserInterests(user.id, article, interactionType, supabase);
+    }
+  } catch (error) {
+    console.error('Error tracking user interaction:', error);
+  }
+}; 
 
 
 export interface ArxivArticle {
@@ -12,6 +38,8 @@ export interface ArxivArticle {
   authors: string[];
   pdf_url: string;
   summary: string;
+  category: string;
+  published: string;
 }
 
 // Function for preprocessing LaTeX text formatting commands
@@ -26,7 +54,7 @@ export const preprocessLatexText = (text: string): string => {
 };
 
 interface PaperCardProps {
-  article: ArxivArticle; 
+  article: ArxivArticle;
   onCollect: (article: ArxivArticle, tags: string[]) => void; // receive tags
   onNext: () => void;
 }
@@ -162,6 +190,7 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
             rel="noopener noreferrer"
             className="rounded-full w-12 h-12 flex items-center justify-center shadow-sm hover:shadow-md transition-all bg-blue-500 hover:bg-blue-600 text-white font-bold text-lg"
             title="PDF"
+            onClick={() => trackUserInteraction(article.id, 'pdf_open', article)}
           >
             P
           </a>
@@ -174,10 +203,12 @@ export const PaperCard: React.FC<PaperCardProps> = ({ article, onCollect, onNext
               
               if (trimmedInput && !finalTags.includes(trimmedInput)) {
                 finalTags.push(trimmedInput);
-               
+                
                 setSelectedTags(finalTags);
                 setTagInput('');
               }
+              // 跟踪收藏行为
+              trackUserInteraction(article.id, 'collect', article);
               onCollect(article, finalTags);
               
             }}
